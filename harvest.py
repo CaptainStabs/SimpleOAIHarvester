@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-import urllib2, os, sys
+import requests, os, sys
 from xml.dom import minidom
 
 if len(sys.argv) < 2: raise Exception('API key required')
 resumeFile = sys.argv[2] if len(sys.argv) >= 3 else None
 apikey = sys.argv[1]
 
-url = u"http://www.rijksmuseum.nl/api/oai/%s/?verb=listrecords&metadataPrefix=oai_dc" % apikey
-url2 = u"http://www.rijksmuseum.nl/api/oai/%s/?verb=listrecords&resumptiontoken=" % apikey
+url = "http://www.rijksmuseum.nl/api/oai/%s/?verb=listrecords&metadataPrefix=oai_dc" % apikey
+url2 = "http://www.rijksmuseum.nl/api/oai/%s/?verb=listrecords&resumptiontoken=" % apikey
 count = 0 # keep track of number of records harvested
 token = ""
 
@@ -19,15 +19,10 @@ def getText(nodelist):
   return ''.join(rc)
 
 def harvest(url):
-  print "downloading: " + url
-  data = urllib2.urlopen(url)
+  print("downloading: " + url)
+  data = requests.get(url).text
 
-  # cache the data because this file-like object is not seekable
-  cached  = ""
-  for s in data:
-    cached += s
-
-  dom = minidom.parseString(cached)
+  dom = minidom.parseString(data)
 
   # check for error
   error = dom.getElementsByTagName('error')
@@ -36,7 +31,7 @@ def harvest(url):
     desc = getText(error[0].childNodes)
     raise Exception(errType + ": " +desc)
 
-  save(cached)
+  save(data)
 
   countRecords = len(dom.getElementsByTagName('record'))
 
@@ -48,8 +43,8 @@ def harvest(url):
 
 def save(data):
   filename = str(count) + '.xml'
-  print 'saving: ' + filename
-  with open(filename, 'w') as f:
+  print('saving: ' + filename)
+  with open(filename, 'w', encoding='utf-8') as f:
     for s in data:
       f.write(s)
 
@@ -86,9 +81,9 @@ try:
 
 
 except:
-  print "\n!!!"
-  print "Unexpected error"
-  print "To resume run this script with the last succesfully harvested file as second paramater:"
-  print "python harvest.py <API KEY> <LAST HARVESTED FILE>"
-  print "!!!\n"
+  print("\n!!!")
+  print("Unexpected error")
+  print("To resume run this script with the last succesfully harvested file as second paramater:")
+  print("python harvest.py <API KEY> <LAST HARVESTED FILE>")
+  print("!!!\n")
   raise
